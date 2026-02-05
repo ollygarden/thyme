@@ -1,0 +1,56 @@
+services:
+  thyme:
+    build: .
+    ports:
+      - "55680:55679" # zpages
+      - "1778:1777"   # pprof
+    volumes:
+      - ./distributions/thyme/config.yaml:/etc/thyme/config.yaml:ro,z
+      - logs:/var/log/app:z
+    depends_on:
+      - nop-collector
+
+  nop-collector:
+    build: .
+    command: ["--config=/etc/thyme/config.yaml"]
+    ports:
+      - "55679:55679" # zpages
+      - "1777:1777"   # pprof
+    volumes:
+      - ./nop-collector-config.yaml:/etc/thyme/config.yaml:ro,z
+    depends_on:
+      - lgtm
+
+  lgtm:
+    image: grafana/otel-lgtm:latest
+    ports:
+      - "3000:3000"  # Grafana
+      - "4317"       # OTLP gRPC
+      - "4318"       # OTLP HTTP
+
+  loggen:
+    image: mscanlon72/loadgen@sha256:9b5d8d2fc965bffdcca48ba92e928693cdcc37575a9af05df86cff0feb1a3d71
+    command:
+      - random-strings
+      - --file-count=1
+      - --duration=0
+      - --lines-per-second=500
+      - --line-max-length=1000
+      - --line-min-length=100
+      - --multi-line-percent=0
+      - --line-count=1
+      - --output=/var/log/app/app.log
+      - --enable-metrics
+      - --shutdown-seconds=120
+      - --tags=sender=log-generator
+    environment:
+      - GOMAXPROCS=1
+    volumes:
+      - logs:/var/log/app:z
+    depends_on:
+      - thyme
+    ports:
+      - "8080:8080"  # metrics endpoint
+
+volumes:
+  logs:

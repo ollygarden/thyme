@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nop-collector
+  namespace: thyme-benchmark
+  labels:
+    app: nop-collector
+    component: collector
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nop-collector
+      component: collector
+  template:
+    metadata:
+      labels:
+        app: nop-collector
+        component: collector
+    spec:
+      containers:
+      - name: nop-collector
+        image: ghcr.io/ollygarden/thyme:latest
+        imagePullPolicy: IfNotPresent  # Use "Never" for k3d local images
+        command:
+          - /thyme
+          - --config=/etc/thyme/config.yaml
+        env:
+          - name: GOMAXPROCS
+            valueFrom:
+              resourceFieldRef:
+                containerName: nop-collector
+                resource: limits.cpu
+        ports:
+          - name: otlp-grpc
+            containerPort: 4317
+            protocol: TCP
+          - name: otlp-http
+            containerPort: 4318
+            protocol: TCP
+          - name: zpages
+            containerPort: 55679
+            protocol: TCP
+          - name: pprof
+            containerPort: 1777
+            protocol: TCP
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 4000m
+            memory: 4Gi
+        volumeMounts:
+          - name: config
+            mountPath: /etc/thyme
+            readOnly: true
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 13133
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 13133
+          initialDelaySeconds: 10
+          periodSeconds: 10
+      volumes:
+        - name: config
+          configMap:
+            name: nop-collector-config

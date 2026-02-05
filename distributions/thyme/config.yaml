@@ -1,0 +1,64 @@
+receivers:
+  filelog:
+    include: [ /var/log/app/*.log ]
+    start_at: beginning
+    include_file_path: true
+    include_file_name: false
+
+processors:
+  batch:
+    send_batch_size: 10000
+    send_batch_max_size: 11000
+    timeout: 10s
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 75
+    spike_limit_percentage: 25
+  resource:
+    attributes:
+    - key: pipeline.name
+      value: "thyme"
+      action: insert
+
+exporters:
+  otlp:
+    endpoint: "nop-collector:4317"
+    tls:
+      insecure: true
+
+extensions:
+  health_check:
+  zpages:
+  pprof:
+
+service:
+  extensions: [health_check, zpages, pprof]
+  pipelines:
+    logs:
+      receivers: [filelog]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlp]
+  telemetry:
+    resource:
+      service.name: thyme
+      service.namespace: ollygarden
+      service.version: 0.1.0
+      tulip.version: "25.11"
+    logs:
+      level: info
+    metrics:
+      level: detailed
+      readers:
+        - periodic:
+            interval: 15000
+            exporter:
+              otlp:
+                protocol: http/protobuf
+                endpoint: http://lgtm:4318
+    traces:
+      processors:
+        - batch:
+            exporter:
+              otlp:
+                protocol: http/protobuf
+                endpoint: http://lgtm:4318

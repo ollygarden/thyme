@@ -1,0 +1,13 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: log-generator
+  namespace: thyme-benchmark
+spec:
+  template:
+    spec:
+      # Tolerate disk-pressure to keep generating logs during benchmark
+      tolerations:
+        - key: node.kubernetes.io/disk-pressure
+          operator: Exists
+          effect: NoSchedule

@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: log-generator
+  namespace: thyme-benchmark
+  labels:
+    app: log-generator
+spec:
+  replicas: 10
+  selector:
+    matchLabels:
+      app: log-generator
+  template:
+    metadata:
+      labels:
+        app: log-generator
+    spec:
+      containers:
+        - name: app
+          image: mscanlon72/loadgen@sha256:9b5d8d2fc965bffdcca48ba92e928693cdcc37575a9af05df86cff0feb1a3d71
+          args:
+            - random-strings
+            - --file-count=1
+            - --duration=86400
+            - --lines-per-second=10000
+            - --line-max-length=1000
+            - --line-min-length=100
+            - --multi-line-percent=0
+            - --line-count=1
+            - --output=stdout
+            - --enable-metrics
+            - --shutdown-seconds=1
+            - --tags=sender=log-generator
+          env:
+            - name: GOMAXPROCS
+              valueFrom:
+                resourceFieldRef:
+                  containerName: app
+                  resource: limits.cpu
+          resources:
+            requests:
+              cpu: 250m
+              memory: 64Mi
+            limits:
+              cpu: 1000m
+              memory: 256Mi
+          ports:
+            - containerPort: 8080
+              name: metrics

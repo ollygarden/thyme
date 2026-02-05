@@ -1,0 +1,49 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    send_batch_size: 10000
+    send_batch_max_size: 11000
+    timeout: 10s
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 75
+    spike_limit_percentage: 25
+  resource:
+    attributes:
+    - key: pipeline.name
+      value: "thyme"
+      action: insert
+
+exporters:
+  debug:
+    verbosity: detailed
+
+extensions:
+  health_check:
+  zpages:
+  pprof:
+
+service:
+  extensions: [health_check, zpages, pprof]
+  pipelines:
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters: [debug]
+  telemetry:
+    resource:
+      service.name: thyme
+      service.namespace: ollygarden
+      service.version: 0.1.0
+      tulip.version: "25.11"
+    logs:
+      level: info
+    metrics:
+      level: detailed

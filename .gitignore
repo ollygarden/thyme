@@ -1,0 +1,30 @@
+# Build artifacts
+distributions/*/build/
+distributions/*/bin/
+dist/
+_build/
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+go.work.sum
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local
+local/

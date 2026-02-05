@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: lgtm
+  namespace: lgtm
+  labels:
+    app: lgtm
+spec:
+  type: ClusterIP
+  ports:
+    - name: grafana
+      port: 3000
+      targetPort: 3000
+      protocol: TCP
+    - name: otlp-grpc
+      port: 4317
+      targetPort: 4317
+      protocol: TCP
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318
+      protocol: TCP
+  selector:
+    app: lgtm
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: lgtm
+  labels:
+    app: lgtm
+spec:
+  type: NodePort
+  ports:
+    - name: grafana
+      port: 3000
+      targetPort: 3000
+      protocol: TCP
+      nodePort: 30000
+  selector:
+    app: lgtm

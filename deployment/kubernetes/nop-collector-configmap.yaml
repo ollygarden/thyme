@@ -1,0 +1,76 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nop-collector-config
+  namespace: thyme-benchmark
+data:
+  config.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+            max_recv_msg_size_mib: 16
+          http:
+            endpoint: 0.0.0.0:4318
+
+    processors:
+      batch:
+        send_batch_size: 10000
+        send_batch_max_size: 11000
+        timeout: 10s
+      memory_limiter:
+        check_interval: 1s
+        limit_percentage: 85
+        spike_limit_percentage: 15
+
+    exporters:
+      nop:
+
+    extensions:
+      health_check:
+        endpoint: 0.0.0.0:13133
+      zpages:
+        endpoint: 0.0.0.0:55679
+      pprof:
+        endpoint: 0.0.0.0:1777
+
+    service:
+      extensions: [health_check, zpages, pprof]
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [nop]
+        metrics:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [nop]
+        logs:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [nop]
+      telemetry:
+        resource:
+          service.name: nop-collector
+          service.namespace: ollygarden
+          service.version: 0.1.0
+          deployment.environment: k3d
+        logs:
+          level: info
+        metrics:
+          level: detailed
+          readers:
+            - periodic:
+                interval: 15000
+                exporter:
+                  otlp:
+                    protocol: http/protobuf
+                    endpoint: http://lgtm.lgtm.svc.cluster.local:4318
+        traces:
+          processors:
+            - batch:
+                exporter:
+                  otlp:
+                    protocol: http/protobuf
+                    endpoint: http://lgtm.lgtm.svc.cluster.local:4318

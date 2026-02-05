@@ -1,0 +1,31 @@
+# Example terraform.tfvars file
+# Copy to terraform.tfvars and customize as needed
+
+cluster_name           = "thyme-benchmark"
+aws_region             = "eu-central-1"
+vpc_cidr               = "10.0.0.0/16"
+kubernetes_version     = "1.34"
+node_instance_type     = "m6i.2xlarge"
+node_desired_capacity  = 3
+node_min_size          = 3
+node_max_size          = 5
+node_disk_size         = 100
+
+# Enable control plane logging for debugging (adds ~$0.50/day cost per log type)
+enable_cluster_logging = false
+
+# Enable HA NAT gateways (one per AZ, adds ~$0.09/hour)
+enable_nat_gateway_ha = false
+
+# Restrict SSH access (empty list = no SSH)
+# allowed_ssh_cidr = ["1.2.3.4/32"]
+
+# Restrict Grafana access (empty list = allow all)
+# grafana_allowed_cidrs = ["1.2.3.4/32"]
+
+common_tags = {
+  Project     = "Thyme"
+  ManagedBy   = "OpenTofu"
+  Environment = "Benchmark"
+  Owner       = "your-name"
+}

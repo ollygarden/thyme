@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: thyme
+  namespace: thyme-benchmark
+  labels:
+    app: thyme
+    component: collector
+spec:
+  selector:
+    matchLabels:
+      app: thyme
+      component: collector
+  template:
+    metadata:
+      labels:
+        app: thyme
+        component: collector
+    spec:
+      serviceAccountName: thyme
+      containers:
+      - name: thyme
+        image: ghcr.io/ollygarden/thyme:latest
+        imagePullPolicy: IfNotPresent  # Use "Never" for k3d local images
+        command:
+          - /thyme
+          - --config=/etc/thyme/config.yaml
+        env:
+          - name: KUBE_NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+          - name: GOMAXPROCS
+            valueFrom:
+              resourceFieldRef:
+                containerName: thyme
+                resource: limits.cpu
+        ports:
+          - name: zpages
+            containerPort: 55679
+            protocol: TCP
+          - name: pprof
+            containerPort: 1777
+            protocol: TCP
+        resources:
+          requests:
+            cpu: 500m
+            memory: 512Mi
+          limits:
+            cpu: 4000m
+            memory: 2Gi
+        volumeMounts:
+          - name: config
+            mountPath: /etc/thyme
+            readOnly: true
+          - name: varlog
+            mountPath: /var/log
+            readOnly: true
+          - name: varlibdockercontainers
+            mountPath: /var/lib/docker/containers
+            readOnly: true
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 13133
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 13133
+          initialDelaySeconds: 10
+          periodSeconds: 10
+      volumes:
+        - name: config
+          configMap:
+            name: thyme-config
+        - name: varlog
+          hostPath:
+            path: /var/log
+        - name: varlibdockercontainers
+          hostPath:
+            path: /var/lib/docker/containers

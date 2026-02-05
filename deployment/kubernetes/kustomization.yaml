@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  # thyme-benchmark namespace resources
+  - namespace.yaml
+  - serviceaccount.yaml
+  - thyme-configmap.yaml
+  - nop-collector-configmap.yaml
+  - thyme-daemonset.yaml
+  - nop-collector-deployment.yaml
+  - nop-collector-service.yaml
+  - loggen-deployment.yaml
+  # LGTM observability stack
+  - lgtm-namespace.yaml
+  - lgtm-deployment.yaml
+  - lgtm-service.yaml
+
+labels:
+  - pairs:
+      project: thyme-benchmark

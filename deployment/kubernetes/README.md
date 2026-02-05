@@ -6,7 +6,7 @@ This directory contains Kubernetes manifests for deploying Thyme in a benchmarki
 
 ```
 ┌──────────────┐
-│  log-generator│  20 replicas @ 2,500 lines/sec each = 50k lines/sec total
+│  log-generator│  10 replicas @ 10,000 lines/sec each = 100k lines/sec total
 └──────┬────────┘
        │ stdout (captured by kubelet)
        ↓
@@ -36,7 +36,7 @@ Both collectors send internal telemetry (metrics, traces) to your observability 
 
 - **thyme**: DaemonSet that reads logs from `/var/log/pods` on each node
 - **nop-collector**: Deployment that receives OTLP and exports to nop (discard)
-- **log-generator**: Deployment with 20 replicas generating 2,500 lines/sec each
+- **log-generator**: Deployment with 10 replicas generating 10,000 lines/sec each (100-1000 byte lines)
 
 ## Prerequisites
 
@@ -160,7 +160,7 @@ kubectl get all -n thyme-benchmark
 Expected output:
 - DaemonSet `thyme` with one pod per node
 - Deployment `nop-collector` with 1 replica
-- Deployment `log-generator` with 20 replicas
+- Deployment `log-generator` with 10 replicas
 
 ## Access Metrics and Observability
 
@@ -219,7 +219,7 @@ kubectl port-forward -n thyme-benchmark deployment/nop-collector 1777:1777
 
 ### 10-Minute Benchmark Test
 
-The default configuration generates 10,000 log lines/second (20 pods × 500 lines/sec).
+The default configuration generates 100,000 log lines/second (10 pods × 10,000 lines/sec).
 
 **1. Verify all components are running:**
 ```bash
@@ -258,10 +258,10 @@ otelcol_process_runtime_heap_alloc_bytes{service_name="thyme"} / 1024 / 1024
 ```
 
 **4. Expected Results (10 minutes):**
-- **Total logs**: ~30,000,000 (10 min × 60 sec × 50k logs/sec)
-- **Throughput**: ~50,000 logs/sec
-- **CPU (thyme)**: ~1.5 cores
-- **Memory (thyme)**: < 1 GB
+- **Total logs**: ~60,000,000 (10 min × 60 sec × 100k logs/sec)
+- **Throughput**: ~100,000 logs/sec
+- **CPU (thyme)**: ~2-3 cores
+- **Memory (thyme)**: < 1.5 GB
 
 **5. Collect Results:**
 
@@ -298,10 +298,10 @@ To test different throughput levels, edit `loggen-deployment.yaml`:
 
 ```yaml
 # Change lines-per-second per pod
---lines-per-second=1000  # 20k logs/sec total
+--lines-per-second=5000  # 50k logs/sec total (10 pods × 5k)
 
 # Change number of replicas
-replicas: 40  # 20k logs/sec total (40 × 500)
+replicas: 20  # 200k logs/sec total (20 × 10k)
 ```
 
 Then reapply:
@@ -339,10 +339,10 @@ k3d cluster delete thyme-test
 ### Adjusting Log Generation Rate
 
 Edit `loggen-deployment.yaml` and modify:
-- `--lines-per-second=500` - Lines per second per replica
-- `replicas: 20` - Number of generator pods
+- `--lines-per-second=10000` - Lines per second per replica
+- `replicas: 10` - Number of generator pods
 
-Total throughput = replicas × lines-per-second
+Total throughput = replicas × lines-per-second (default: 10 × 10,000 = 100k logs/sec)
 
 ### Adjusting Collector Resources
 

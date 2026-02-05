@@ -45,10 +45,23 @@ Thyme includes components optimized for log collection:
 
 | Metric | Target |
 |--------|--------|
-| Log throughput | 50k-100k records/sec |
-| Average log size | ~512 bytes |
+| Log throughput | 100k records/sec (default config) |
+| Average log size | ~500 bytes (100-1000 byte range) |
 | Deployment mode | DaemonSet |
 | Node type | m6i.2xlarge (8 vCPU, 32GB RAM) |
+
+### Benchmark Results
+
+The following dashboard shows collector metrics during a 100k logs/sec benchmark run:
+
+![Grafana Benchmark Metrics](docs/images/grafana-benchmark-metrics.png)
+
+Key metrics shown:
+- **otelcol_exporter_sent_log_records_total** - Logs successfully exported
+- **otelcol_receiver_accepted_log_records_total** - Logs received by collectors
+- **otelcol_exporter_queue_batch_send_size** - Batch sizes being sent
+- **otelcol_process_runtime_heap_alloc_bytes** - Memory usage
+- **otelcol_process_cpu_seconds_total** - CPU consumption
 
 ## Getting Started
 
@@ -154,12 +167,12 @@ kubectl apply -k deployment/aws/
 The setup creates a realistic two-stage collection pipeline for performance testing:
 
 ```
-loggen (2,500 lines/sec × 20 pods = 50k/sec)
-    ↓ (writes to shared volume)
-/var/log/app/app.log
+loggen (10,000 lines/sec × 10 pods = 100k/sec)
+    ↓ (writes to stdout → containerd)
+/var/log/pods/*
     ↓ (filelog receiver)
-thyme collector
-    ↓ (OTLP exporter → nop-collector:4317)
+thyme collector (DaemonSet)
+    ↓ (k8sattributes → batch → OTLP exporter)
 nop-collector
     ↓ (nop exporter - discards data)
    ∅
@@ -168,7 +181,7 @@ Both collectors send internal telemetry → LGTM
 ```
 
 **Components:**
-- **loggen**: Generates 2,500 log lines/sec per pod to `/var/log/app/app.log` on shared volume
+- **loggen**: Generates 10,000 log lines/sec per pod (100-1000 byte lines) to stdout, captured by containerd
 - **thyme**: Reads logs via filelog receiver, processes (batch, memory_limiter, resource), exports via OTLP to nop-collector
 - **nop-collector**: Receives OTLP, processes, exports to nop (discard)
 - **LGTM**: Collects internal telemetry (metrics, traces) from both collectors on port 3000
@@ -264,13 +277,16 @@ open http://localhost:3000  # admin/admin
 # 3. Monitor throughput (Explore → Prometheus)
 rate(otelcol_receiver_accepted_log_records_total{service_name="nop-collector"}[1m])
 
-# Expected: ~50,000 logs/sec
+# Expected: ~100,000 logs/sec
 ```
 
 ## Repository Structure
 
 ```
 thyme/
+├── docs/
+│   └── images/                  # Documentation images
+│       └── grafana-benchmark-metrics.png
 ├── deployment/
 │   ├── compose/                 # Docker Compose for local development
 │   │   ├── docker-compose.yaml

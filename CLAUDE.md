@@ -69,7 +69,7 @@ When modifying configurations, remember:
 ### Two-Stage Benchmarking Pipeline
 
 ```
-log-generator pods (20 × 2,500 lines/sec = 50k logs/sec)
+log-generator pods (10 × 10,000 lines/sec = 100k logs/sec)
     ↓
 /var/log/pods/* (Kubernetes host filesystem)
     ↓
@@ -327,7 +327,7 @@ tofu destroy
 | **Cost** | Free | ~$2.50/hour |
 | **Use Case** | Development, quick tests | Production-scale validation |
 
-**Why co-locate log generators on AWS?** Tests thyme DaemonSet at maximum single-node capacity (50k logs/sec from one node), simulating realistic "hot node" scenarios.
+**Why co-locate log generators on AWS?** Tests thyme DaemonSet at maximum single-node capacity (100k logs/sec from one node), simulating realistic "hot node" scenarios.
 
 ### AWS Configuration
 
@@ -359,7 +359,7 @@ enable_nat_gateway_ha  = false
 
 **Pods not co-locating:**
 - Verify: `kubectl get pods -n thyme-benchmark -l app=log-generator -o wide`
-- All 20 log-gen pods should be on the same node
+- All 10 log-gen pods should be on the same node
 - If spread: increase instance type or reduce replicas
 
 **tofu destroy hangs:**

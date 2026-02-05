@@ -1,6 +1,6 @@
 # Benchmark Skill
 
-Run a complete Thyme benchmarking test with automated report generation.
+Run Thyme benchmarking tests with automated report generation.
 
 ## Trigger
 
@@ -11,83 +11,167 @@ Use this skill when the user asks to:
 - "Run performance tests"
 - "Benchmark thyme"
 - "Test thyme performance"
+- "Run AWS benchmark"
+- "Benchmark on EKS"
 
-## What This Skill Does
+## Environment Options
 
-1. **Setup**: Creates a k3d cluster named `thyme-benchmark` with 2 agent nodes
-2. **Build & Deploy**: Builds Thyme image and deploys the full stack (thyme-benchmark + LGTM)
-3. **Monitor**: Runs the benchmark while monitoring pod health every 30 seconds
-4. **Collect**: Gathers metrics from Prometheus and pod logs
-5. **Report**: Generates a comprehensive markdown report in `./local/reports/YYYY-MM-DD-NN/`
+### Local (k3d) - Default
+- **Cost**: Free
+- **Setup time**: ~5 minutes
+- **Use case**: Development, quick validation
+- **Infrastructure**: Local Docker with k3d cluster
+- **Throughput**: 50k logs/sec (20 pods × 2,500 lines/sec)
+
+### AWS (EKS)
+- **Cost**: ~$2.50/hour (~$3 for full 75-min run)
+- **Setup time**: ~20 minutes (infrastructure provisioning)
+- **Use case**: Production-scale validation
+- **Infrastructure**: 3× m6i.2xlarge nodes (8 vCPU, 32GB each)
+- **Throughput**: 100k logs/sec (40 pods × 2,500 lines/sec on single "hot" node)
 
 ## Implementation
 
-When this skill is invoked:
+### Step 1: Ask for Environment
 
-1. **Ask for duration** if not specified:
-   ```
-   How long should the benchmark run? (default: 60 minutes)
-   ```
+If the user doesn't specify, ask:
 
-2. **Execute the benchmark script**:
-   ```bash
-   ./scripts/run-benchmark.sh [duration_minutes]
-   ```
+```
+Which environment should I run the benchmark on?
 
-3. **Monitor progress**: The script will output progress every 30 seconds. Show this to the user.
+1. **Local (k3d)** - Free, ~5 min setup, good for development
+2. **AWS (EKS)** - ~$2.50/hour, ~20 min setup, production-scale testing
+```
 
-4. **Report completion**: When done, inform the user:
-   ```
-   Benchmark complete! Report saved to: ./local/reports/YYYY-MM-DD-NN/
+### Step 2: Ask for Duration
 
-   Next steps:
-   - Review report: cat ./local/reports/YYYY-MM-DD-NN/REPORT.md
-   - Analyze metrics: cat ./local/reports/YYYY-MM-DD-NN/metrics.json | jq
-   - Access Grafana: kubectl port-forward -n lgtm service/grafana 3000:3000
-   - Cleanup cluster: k3d cluster delete thyme-benchmark
-   ```
+**For Local (k3d)**:
+```
+How long should the benchmark run? (default: 60 minutes)
+```
+
+**For AWS (EKS)**:
+```
+How long should the ACTIVE benchmark phase run? (default: 30 minutes)
+
+Note: Total time includes ramp-up (5 min) + active + cool-down (10 min)
+So 30 min active = 45 min benchmark + ~20 min setup + ~10 min cleanup = ~75 min total
+```
+
+### Step 3: Execute
+
+**For Local (k3d)**:
+```bash
+./scripts/run-benchmark.sh [duration_minutes]
+```
+
+**For AWS (EKS)**:
+```bash
+# Default: auto-cleanup enabled
+./scripts/run-benchmark-aws.sh [active_duration_minutes]
+
+# To keep infrastructure running after benchmark:
+AUTO_CLEANUP=false ./scripts/run-benchmark-aws.sh [active_duration_minutes]
+```
+
+### Step 4: Monitor and Report
+
+Both scripts output progress. When done, inform the user:
+
+**For Local**:
+```
+Benchmark complete! Report saved to: ./local/reports/YYYY-MM-DD-NN/
+
+Next steps:
+- Review report: cat ./local/reports/YYYY-MM-DD-NN/REPORT.md
+- Analyze metrics: cat ./local/reports/YYYY-MM-DD-NN/metrics.json | jq
+- Access Grafana: kubectl port-forward -n lgtm service/grafana 3000:3000
+- Cleanup cluster: k3d cluster delete thyme-benchmark
+```
+
+**For AWS**:
+```
+Benchmark complete! Report saved to: ./local/reports/YYYY-MM-DD-NN-aws/
+
+Next steps:
+- Review report: cat ./local/reports/YYYY-MM-DD-NN-aws/REPORT.md
+- Analyze metrics: cat ./local/reports/YYYY-MM-DD-NN-aws/metrics.json | jq
+```
+
+If AUTO_CLEANUP=false was used:
+```
+Infrastructure is still running!
+- Access Grafana: http://<LoadBalancer-URL>:3000
+- Cleanup: cd infrastructure/aws && tofu destroy
+```
+
+## AWS-Specific Details
+
+### Prerequisites
+- AWS CLI configured (`aws configure`)
+- OpenTofu or Terraform installed
+- Docker (for building/pushing to ECR)
+
+### Benchmark Phases
+1. **Ramp-up** (5 min): System stabilization
+2. **Active** (configurable, default 30 min): Performance measurement
+3. **Cool-down** (10 min): Observe tail behavior
+
+### Environment Variables
+- `AWS_REGION` - AWS region (default: eu-central-1)
+- `AUTO_CLEANUP` - Destroy infrastructure after benchmark (default: true)
+- `RAMPUP_MINUTES` - Ramp-up duration (default: 5)
+- `COOLDOWN_MINUTES` - Cool-down duration (default: 10)
+
+### Cost Breakdown
+- EKS control plane: $0.10/hour
+- 3× m6i.2xlarge nodes: $1.152/hour
+- EBS, NAT, NLB, data transfer: ~$0.25/hour
+- **Total: ~$2.50/hour**
 
 ## Report Contents
 
-The generated report directory contains:
+Both environments generate similar reports in `./local/reports/`:
 
-- **REPORT.md** - Comprehensive markdown report with summary and cluster info
-- **metrics.json** - Prometheus query results (time-series data)
-- **queries.txt** - PromQL queries used for metrics collection
-- **health.log** - CSV log of pod health checks during test
-- **logs/** - Directory containing:
-  - `thyme.log` - Thyme DaemonSet logs (last 500 lines)
-  - `nop-collector.log` - Nop-collector logs (last 500 lines)
-  - `lgtm.log` - LGTM stack logs (last 500 lines)
-  - `log-generator-sample.log` - Sample log generator output
-
-## Notes
-
-- The script is idempotent - it will delete and recreate the cluster if it exists
-- Progress is logged every 30 seconds with pod health status
-- The cluster is NOT automatically deleted - user must clean up manually
-- Report directory uses sequential numbering (01, 02, 03...) for same-day runs
-- Default duration is 60 minutes if not specified
+- **REPORT.md** - Comprehensive markdown report
+- **metrics.json** - Prometheus query results
+- **queries.txt** - PromQL queries used
+- **health*.log** - Pod health checks during test
+- **logs/** - Pod logs from collectors and generators
 
 ## Examples
 
-**Example 1: Default 60-minute benchmark**
+**Example 1: Quick local test**
 ```
-User: "Run a benchmark"
-Assistant: "I'll run a 60-minute Thyme benchmark. This will take about an hour..."
-[Executes ./scripts/run-benchmark.sh 60]
-```
-
-**Example 2: Custom duration**
-```
-User: "Run a 10-minute benchmark"
-Assistant: "I'll run a 10-minute Thyme benchmark..."
+User: "Run a quick benchmark"
+Assistant: "I'll run a 10-minute local benchmark on k3d..."
 [Executes ./scripts/run-benchmark.sh 10]
 ```
 
-**Example 3: Quick test**
+**Example 2: Production-scale AWS test**
 ```
-User: "Do a quick performance test"
-Assistant: "I'll run a 5-minute benchmark for quick validation..."
-[Executes ./scripts/run-benchmark.sh 5]
+User: "Run a benchmark on AWS"
+Assistant: "I'll run an AWS EKS benchmark with 30-minute active phase (~75 min total, ~$3 cost)..."
+[Executes ./scripts/run-benchmark-aws.sh 30]
 ```
+
+**Example 3: AWS with custom duration, keep infrastructure**
+```
+User: "Run an hour-long AWS benchmark and keep the cluster running"
+Assistant: "I'll run an AWS benchmark with 60-minute active phase and preserve infrastructure..."
+[Executes AUTO_CLEANUP=false ./scripts/run-benchmark-aws.sh 60]
+```
+
+**Example 4: User specifies local explicitly**
+```
+User: "Run a local benchmark for 30 minutes"
+Assistant: "Running 30-minute local k3d benchmark..."
+[Executes ./scripts/run-benchmark.sh 30]
+```
+
+## Notes
+
+- Local k3d cluster is NOT automatically deleted after benchmark
+- AWS infrastructure IS automatically deleted by default (AUTO_CLEANUP=true)
+- Report directories use `-aws` suffix for AWS runs
+- Sequential numbering (01, 02, 03...) prevents overwriting same-day runs

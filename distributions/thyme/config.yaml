@@ -1,19 +1,98 @@
 receivers:
   filelog:
-    include: [ /var/log/app/*.log ]
+    include:
+      - /var/log/pods/*/*/*.log
+    exclude:
+      - /var/log/pods/*/thyme*/*.log
+      - /var/log/pods/*/nop-collector*/*.log
     start_at: beginning
     include_file_path: true
     include_file_name: false
+    max_concurrent_files: 1024
+    max_batches: 0
+    poll_interval: 100ms
+    operators:
+      # Parse containerd format: "timestamp stdout/stderr F logline"
+      - type: regex_parser
+        id: parser-containerd
+        regex: '^(?P<time>[^ ^Z]+Z) (?P<stream>stdout|stderr) (?P<logtag>[^ ]*) ?(?P<log>.*)$'
+        timestamp:
+          parse_from: attributes.time
+          layout: '%Y-%m-%dT%H:%M:%S.%LZ'
+        on_error: drop
+      # Extract metadata from file path
+      # Path format: /var/log/pods/<namespace>_<pod-name>_<pod-uid>/<container-name>/<restart-count>.log
+      - type: regex_parser
+        id: extract_metadata_from_filepath
+        regex: '^.*\/(?P<namespace>[^_]+)_(?P<pod_name>[^_]+)_(?P<uid>[a-f0-9\-]+)\/(?P<container_name>[^\._]+)\/(?P<restart_count>\d+)\.log$'
+        parse_from: attributes["log.file.path"]
+        on_error: drop
+      # Move log content to body
+      - type: move
+        from: attributes.log
+        to: body
+        on_error: drop
+      # Move container metadata to resource attributes (semantic conventions)
+      - type: move
+        from: attributes.namespace
+        to: resource["k8s.namespace.name"]
+        on_error: drop
+      - type: move
+        from: attributes.pod_name
+        to: resource["k8s.pod.name"]
+        on_error: drop
+      - type: move
+        from: attributes.container_name
+        to: resource["k8s.container.name"]
+        on_error: drop
 
 processors:
   batch:
     send_batch_size: 10000
     send_batch_max_size: 11000
-    timeout: 10s
+    timeout: 200ms
   memory_limiter:
     check_interval: 1s
-    limit_percentage: 75
-    spike_limit_percentage: 25
+    limit_percentage: 90
+    spike_limit_percentage: 10
+  k8sattributes:
+    auth_type: "serviceAccount"
+    passthrough: false
+    filter:
+      node_from_env_var: KUBE_NODE_NAME
+    extract:
+      metadata:
+        # Pod metadata
+        - k8s.namespace.name
+        - k8s.pod.name
+        - k8s.pod.uid
+        - k8s.pod.start_time
+        # Owner references
+        - k8s.deployment.name
+        - k8s.replicaset.name
+        - k8s.statefulset.name
+        - k8s.daemonset.name
+        - k8s.job.name
+        - k8s.cronjob.name
+        # Node info
+        - k8s.node.name
+        # Container info
+        - container.id
+        - container.image.name
+        - container.image.tag
+      labels:
+        - tag_name: app
+          key: app
+          from: pod
+        - tag_name: component
+          key: component
+          from: pod
+    pod_association:
+      - sources:
+          - from: resource_attribute
+            name: k8s.pod.name
+          - from: resource_attribute
+            name: k8s.namespace.name
   resource:
     attributes:
     - key: pipeline.name
@@ -28,15 +107,18 @@ exporters:
 
 extensions:
   health_check:
+    endpoint: 0.0.0.0:13133
   zpages:
+    endpoint: 0.0.0.0:55679
   pprof:
+    endpoint: 0.0.0.0:1777
 
 service:
   extensions: [health_check, zpages, pprof]
   pipelines:
     logs:
       receivers: [filelog]
-      processors: [memory_limiter, resource, batch]
+      processors: [memory_limiter, k8sattributes, resource, batch]
       exporters: [otlp]
   telemetry:
     resource:

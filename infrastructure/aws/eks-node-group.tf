@@ -51,6 +51,7 @@ resource "aws_eks_node_group" "main" {
     aws_iam_role_policy_attachment.node_cni_policy,
     aws_iam_role_policy_attachment.node_registry_policy,
     aws_iam_role_policy_attachment.node_cloudwatch_policy,
+    aws_eks_addon.vpc_cni,
   ]
 
   lifecycle {

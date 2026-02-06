@@ -7,7 +7,7 @@ metadata:
     app: nop-collector
     component: collector
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       app: nop-collector

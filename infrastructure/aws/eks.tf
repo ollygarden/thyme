@@ -59,6 +59,15 @@ resource "aws_eks_addon" "vpc_cni" {
   resolve_conflicts_on_create = "OVERWRITE"
   resolve_conflicts_on_update = "PRESERVE"
 
+  # Enable prefix delegation to support 250 pods/node (default is ~58 for m6i.2xlarge).
+  # Required for the 200-pod log-generator benchmark.
+  configuration_values = jsonencode({
+    env = {
+      ENABLE_PREFIX_DELEGATION = "true"
+      WARM_PREFIX_TARGET       = "1"
+    }
+  })
+
   tags = var.common_tags
 }
 

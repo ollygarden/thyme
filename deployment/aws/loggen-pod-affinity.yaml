@@ -11,3 +11,12 @@ spec:
         - key: node.kubernetes.io/disk-pressure
           operator: Exists
           effect: NoSchedule
+      # Co-locate all log-generator pods on the same node to concentrate
+      # 100k logs/sec on a single thyme DaemonSet instance ("hot node" test).
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app: log-generator
+              topologyKey: kubernetes.io/hostname

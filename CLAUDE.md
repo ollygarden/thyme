@@ -69,7 +69,7 @@ When modifying configurations, remember:
 ### Two-Stage Benchmarking Pipeline
 
 ```
-log-generator pods (10 × 10,000 lines/sec = 100k logs/sec)
+log-generator pods (100 × 1,000 lines/sec = 100k logs/sec)
     ↓
 /var/log/pods/* (Kubernetes host filesystem)
     ↓
@@ -359,7 +359,7 @@ enable_nat_gateway_ha  = false
 
 **Pods not co-locating:**
 - Verify: `kubectl get pods -n thyme-benchmark -l app=log-generator -o wide`
-- All 10 log-gen pods should be on the same node
+- All 100 log-gen pods should be on the same node
 - If spread: increase instance type or reduce replicas
 
 **tofu destroy hangs:**
@@ -457,11 +457,11 @@ batch:
 - Or wait for backlog processing to complete before measuring
 - Watch for throughput to stabilize at expected input rate
 
-### Fewer Pods with Higher Rate is More Stable
+### Many Small Pods Better Simulate Real Workloads
 
-**Problem:** 40 pods × 2500 lines/sec caused scheduling chaos (many pods in Error/Pending state).
+**Approach:** 100 pods × 1,000 lines/sec (co-located on one node via pod affinity) simulates a busy node with many workloads writing to `/var/log/pods/`. This stresses the filelog receiver's ability to watch many files simultaneously, which is more realistic than a few high-throughput pods.
 
-**Solution:** 10 pods × 10000 lines/sec is more stable and easier to manage. Fewer pods = less scheduling overhead, fewer failure points.
+**Constraint:** EKS max pods per node is ~110 (m6i.2xlarge with VPC CNI prefix delegation). With ~10 system pods, ~100 log-gen pods is the practical maximum per node.
 
 ### Pod Affinity + Node Taints = Scheduling Deadlock
 

@@ -12,7 +12,7 @@ data:
         exclude:
           - /var/log/pods/thyme-benchmark_thyme*/*/*.log
           - /var/log/pods/thyme-benchmark_nop-collector*/*/*.log
-        start_at: beginning
+        start_at: end
         include_file_path: true
         include_file_name: false
         max_concurrent_files: 1024

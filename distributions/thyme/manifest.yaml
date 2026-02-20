@@ -15,6 +15,7 @@ processors:
   - gomod: go.opentelemetry.io/collector/processor/memorylimiterprocessor v0.144.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/k8sattributesprocessor v0.144.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourceprocessor v0.144.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/processor/transformprocessor v0.144.0
 
 exporters:
   - gomod: go.opentelemetry.io/collector/exporter/nopexporter v0.144.0
@@ -26,8 +27,10 @@ extensions:
   - gomod: go.opentelemetry.io/collector/extension/zpagesextension v0.144.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckextension v0.144.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/pprofextension v0.144.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/storage/filestorage v0.144.0
 
 providers:
   - gomod: go.opentelemetry.io/collector/confmap/provider/fileprovider v1.50.0
   - gomod: go.opentelemetry.io/collector/confmap/provider/envprovider v1.50.0
   - gomod: go.opentelemetry.io/collector/confmap/provider/yamlprovider v1.50.0
+

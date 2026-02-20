@@ -10,15 +10,15 @@ data:
         protocols:
           grpc:
             endpoint: 0.0.0.0:4317
-            max_recv_msg_size_mib: 16
+            max_recv_msg_size_mib: 64
           http:
             endpoint: 0.0.0.0:4318
 
     processors:
-      memory_limiter:
-        check_interval: 1s
-        limit_percentage: 85
-        spike_limit_percentage: 15
+      batch:
+        send_batch_size: 10000
+        send_batch_max_size: 11000
+        timeout: 200ms
 
     exporters:
       nop:
@@ -36,15 +36,15 @@ data:
       pipelines:
         traces:
           receivers: [otlp]
-          processors: [memory_limiter]
+          processors: [batch]
           exporters: [nop]
         metrics:
           receivers: [otlp]
-          processors: [memory_limiter]
+          processors: [batch]
           exporters: [nop]
         logs:
           receivers: [otlp]
-          processors: [memory_limiter]
+          processors: [batch]
           exporters: [nop]
       telemetry:
         resource:

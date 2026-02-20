@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: lgtm
+data:
+  prometheus.yaml: |
+    ---
+    global:
+      scrape_interval: 15s
+      scrape_native_histograms: true
+    otlp:
+      keep_identifying_resource_attributes: true
+      promote_resource_attributes:
+        - service.instance.id
+        - service.name
+        - service.namespace
+        - service.version
+        - cloud.availability_zone
+        - cloud.region
+        - container.name
+        - deployment.environment
+        - deployment.environment.name
+        - k8s.cluster.name
+        - k8s.container.name
+        - k8s.cronjob.name
+        - k8s.daemonset.name
+        - k8s.deployment.name
+        - k8s.job.name
+        - k8s.namespace.name
+        - k8s.node.name
+        - k8s.pod.name
+        - k8s.replicaset.name
+        - k8s.statefulset.name
+        - host.name
+        - postgresql.database.name
+        - postgresql.schema.name
+        - postgresql.table.name
+        - postgresql.index.name
+        - database
+        - kafka.cluster.alias
+    storage:
+      tsdb:
+        out_of_order_time_window: 10m
+    scrape_configs:
+      - job_name: log-generator
+        dns_sd_configs:
+          - names:
+              - log-generator.thyme-benchmark.svc.cluster.local
+            type: A
+            port: 8080

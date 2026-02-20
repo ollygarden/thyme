@@ -6,7 +6,7 @@ metadata:
   labels:
     app: log-generator
 spec:
-  replicas: 100
+  replicas: 10
   selector:
     matchLabels:
       app: log-generator
@@ -22,7 +22,7 @@ spec:
             - random-strings
             - --file-count=1
             - --duration=86400
-            - --lines-per-second=1000
+            - --lines-per-second=1250
             - --line-max-length=1000
             - --line-min-length=100
             - --multi-line-percent=0

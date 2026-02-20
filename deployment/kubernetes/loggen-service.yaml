@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: log-generator
+  namespace: thyme-benchmark
+  labels:
+    app: log-generator
+spec:
+  clusterIP: None
+  ports:
+    - name: metrics
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+  selector:
+    app: log-generator

@@ -11,8 +11,10 @@ resources:
   - nop-collector-deployment.yaml
   - nop-collector-service.yaml
   - loggen-deployment.yaml
+  - loggen-service.yaml
   # LGTM observability stack
   - lgtm-namespace.yaml
+  - lgtm-prometheus-config.yaml
   - lgtm-deployment.yaml
   - lgtm-service.yaml
 

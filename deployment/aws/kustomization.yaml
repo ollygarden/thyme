@@ -14,4 +14,4 @@ patches:
 images:
   - name: ghcr.io/ollygarden/thyme
     newName: 061039797035.dkr.ecr.eu-central-1.amazonaws.com/thyme
-    newTag: latest
+    newTag: build-1770369839

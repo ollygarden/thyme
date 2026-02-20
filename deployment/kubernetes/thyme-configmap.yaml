@@ -13,49 +13,34 @@ data:
           - /var/log/pods/thyme-benchmark_thyme*/*/*.log
           - /var/log/pods/thyme-benchmark_nop-collector*/*/*.log
         start_at: end
+        storage: file_storage/positions
         include_file_path: true
         include_file_name: false
+        fingerprint_size: 256
         max_concurrent_files: 1024
         max_batches: 0
-        poll_interval: 100ms
-        operators:
-          # Parse containerd format: "timestamp stdout/stderr F logline"
-          - type: regex_parser
-            id: parser-containerd
-            regex: '^(?P<time>[^ ^Z]+Z) (?P<stream>stdout|stderr) (?P<logtag>[^ ]*) ?(?P<log>.*)$'
-            timestamp:
-              parse_from: attributes.time
-              layout: '%Y-%m-%dT%H:%M:%S.%LZ'
-            on_error: drop
-          # Extract metadata from file path
-          - type: regex_parser
-            id: extract_metadata_from_filepath
-            regex: '^.*\/(?P<namespace>[^_]+)_(?P<pod_name>[^_]+)_(?P<uid>[a-f0-9\-]+)\/(?P<container_name>[^\._]+)\/(?P<restart_count>\d+)\.log$'
-            parse_from: attributes["log.file.path"]
-            on_error: drop
-          # Move log content to body
-          - type: move
-            from: attributes.log
-            to: body
-            on_error: drop
-          # Move container metadata to resource
-          - type: move
-            from: attributes.namespace
-            to: resource["k8s.namespace.name"]
-            on_error: drop
-          - type: move
-            from: attributes.pod_name
-            to: resource["k8s.pod.name"]
-            on_error: drop
-          - type: move
-            from: attributes.container_name
-            to: resource["k8s.container.name"]
-            on_error: drop
+        poll_interval: 500ms
 
     processors:
+      transform:
+        error_mode: ignore
+        log_statements:
+          - context: log
+            statements:
+              # Parse containerd format: "2024-01-15T10:30:00.123456789Z stdout F message"
+              - set(cache["containerd"], ExtractPatterns(body, "^(?P<timestamp>[^ ]+) (?P<stream>stdout|stderr) [^ ]* ?(?P<content>.*)$"))
+              - set(time, Time(cache["containerd"]["timestamp"], "2006-01-02T15:04:05.999999999Z07:00")) where cache["containerd"]["timestamp"] != nil
+              - set(attributes["log.iostream"], cache["containerd"]["stream"]) where cache["containerd"]["stream"] != nil
+              - set(body, cache["containerd"]["content"]) where cache["containerd"]["content"] != nil
+              # Extract k8s metadata from file path
+              - set(cache["k8s"], ExtractPatterns(attributes["log.file.path"], "/var/log/pods/(?P<namespace>[^_]+)_(?P<pod>[^_]+)_(?P<uid>[^/]+)/(?P<container>[^/]+)/"))
+              - set(resource.attributes["k8s.namespace.name"], cache["k8s"]["namespace"]) where cache["k8s"]["namespace"] != nil
+              - set(resource.attributes["k8s.pod.name"], cache["k8s"]["pod"]) where cache["k8s"]["pod"] != nil
+              - set(resource.attributes["k8s.pod.uid"], cache["k8s"]["uid"]) where cache["k8s"]["uid"] != nil
+              - set(resource.attributes["k8s.container.name"], cache["k8s"]["container"]) where cache["k8s"]["container"] != nil
       batch:
-        send_batch_size: 10000
-        send_batch_max_size: 11000
+        send_batch_size: 2500
+        send_batch_max_size: 3000
         timeout: 200ms
       memory_limiter:
         check_interval: 1s
@@ -97,10 +82,18 @@ data:
           action: insert
 
     exporters:
-      otlp:
-        endpoint: "nop-collector.thyme-benchmark.svc.cluster.local:4317"
-        tls:
-          insecure: true
+      nop: {}
+      otlphttp:
+        endpoint: "http://nop-collector.thyme-benchmark.svc.cluster.local:4318"
+        compression: zstd
+        retry_on_failure:
+          enabled: true
+          max_elapsed_time: 300s
+        sending_queue:
+          enabled: true
+          num_consumers: 100
+          queue_size: 10000
+          storage: file_storage/sending_queue
 
     extensions:
       health_check:
@@ -109,14 +102,20 @@ data:
         endpoint: 0.0.0.0:55679
       pprof:
         endpoint: 0.0.0.0:1777
+      file_storage/positions:
+        directory: /var/lib/otelcol/filelog
+        fsync: false
+      file_storage/sending_queue:
+        directory: /var/lib/otelcol/sending_queue
+        fsync: false
 
     service:
-      extensions: [health_check, zpages, pprof]
+      extensions: [health_check, zpages, pprof, file_storage/positions, file_storage/sending_queue]
       pipelines:
         logs:
           receivers: [filelog]
           processors: [memory_limiter, k8sattributes, resource, batch]
-          exporters: [otlp]
+          exporters: [otlphttp]
       telemetry:
         resource:
           service.name: thyme

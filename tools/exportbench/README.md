@@ -4,7 +4,7 @@ Benchmark tool for comparing metric serialization formats. Measures payload size
 
 ## Context
 
-We receive metric payloads from customers via Raincatcher as protobuf-encoded `ExportMetricsServiceRequest` messages. This tool helps evaluate which wire format to use for downstream export/storage by benchmarking against real production payloads.
+Evaluates which wire format to use for downstream export/storage of metric payloads by benchmarking serialization of protobuf-encoded `ExportMetricsServiceRequest` messages.
 
 ## Formats Tested
 
@@ -20,7 +20,7 @@ We receive metric payloads from customers via Raincatcher as protobuf-encoded `E
 
 ## Prerequisites
 
-A directory of `.pb` files containing protobuf-encoded `ExportMetricsServiceRequest` payloads. These are produced by Raincatcher's ingester (see `raincatcher/internal/app/ingester_processor.go`).
+A directory of `.pb` files containing protobuf-encoded `ExportMetricsServiceRequest` payloads (output of `pmetricotlp.ExportRequest.MarshalProto()`).
 
 ## Usage
 
@@ -32,7 +32,7 @@ cd tools/exportbench
 go build -o ../../bin/exportbench ./...
 
 # Run against payload directory
-../../bin/exportbench --input-dir /path/to/raincatcher/local/raw/
+../../bin/exportbench --input-dir /path/to/payload-dir/
 
 # Custom iteration count
 ../../bin/exportbench --input-dir /path/to/raw/ --iterations 20
@@ -44,7 +44,7 @@ Output is a markdown table to stdout with per-format size, compression ratio, ti
 
 ```bash
 # Set payload directory
-export EXPORTBENCH_INPUT_DIR=/path/to/raincatcher/local/raw/
+export EXPORTBENCH_INPUT_DIR=/path/to/payload-dir/
 
 # Run all benchmarks
 go test -bench=. -benchmem -count=3

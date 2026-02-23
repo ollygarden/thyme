@@ -1,6 +1,9 @@
 package main
 
 import (
+	"bytes"
+	"sync"
+
 	"github.com/klauspost/compress/zstd"
 	"github.com/splunk/stef/go/otel/otelstef"
 	stefpdatametrics "github.com/splunk/stef/go/pdata/metrics"
@@ -46,11 +49,39 @@ func marshalSTEFWith(metrics pmetric.Metrics, compression pkg.Compression) ([]by
 	return buf.Bytes(), nil
 }
 
-func compressZstd(data []byte) ([]byte, error) {
-	enc, err := zstd.NewWriter(nil, zstd.WithEncoderLevel(zstd.SpeedDefault))
-	if err != nil {
+// compressZstdHTTP mirrors confighttp's compressor: sync.Pool of encoders
+// with WithEncoderConcurrency(1), default 8MB window, streaming write.
+// See: go.opentelemetry.io/collector/config/confighttp/compressor.go
+var httpZstdPool = sync.Pool{
+	New: func() any {
+		w, _ := zstd.NewWriter(nil, zstd.WithEncoderConcurrency(1))
+		return w
+	},
+}
+
+func compressZstdHTTP(data []byte) ([]byte, error) {
+	enc := httpZstdPool.Get().(*zstd.Encoder)
+	defer httpZstdPool.Put(enc)
+
+	var buf bytes.Buffer
+	enc.Reset(&buf)
+	if _, err := enc.Write(data); err != nil {
 		return nil, err
 	}
-	defer enc.Close()
-	return enc.EncodeAll(data, nil), nil
+	if err := enc.Close(); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+// compressZstdGRPC mirrors go-grpc-compression's zstd codec: single shared
+// encoder with 512KB window, EncodeAll() batch encoding.
+// See: github.com/mostynb/go-grpc-compression/internal/zstd/zstd.go
+var grpcZstdEncoder, _ = zstd.NewWriter(nil,
+	zstd.WithEncoderConcurrency(1),
+	zstd.WithWindowSize(512*1024),
+)
+
+func compressZstdGRPC(data []byte) ([]byte, error) {
+	return grpcZstdEncoder.EncodeAll(data, nil), nil
 }

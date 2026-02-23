@@ -82,7 +82,7 @@ func main() {
 			}
 			return total, nil
 		}},
-		{"OTLP gRPC (proto)", func(ps []payload) (int64, error) {
+		{"OTLP gRPC (no compression)", func(ps []payload) (int64, error) {
 			var total int64
 			for _, p := range ps {
 				b, err := marshalProto(p.req)
@@ -116,14 +116,14 @@ func main() {
 			}
 			return total, nil
 		}},
-		{"JSON + zstd", func(ps []payload) (int64, error) {
+		{"OTLP/HTTP JSON + zstd", func(ps []payload) (int64, error) {
 			var total int64
 			for _, p := range ps {
 				b, err := marshalJSON(p.req)
 				if err != nil {
 					return 0, err
 				}
-				c, err := compressZstd(b)
+				c, err := compressZstdHTTP(b)
 				if err != nil {
 					return 0, err
 				}
@@ -131,18 +131,34 @@ func main() {
 			}
 			return total, nil
 		}},
-		{"Protobuf + zstd", func(ps []payload) (int64, error) {
+		{"OTLP/HTTP Proto + zstd", func(ps []payload) (int64, error) {
 			var total int64
 			for _, p := range ps {
 				b, err := marshalProto(p.req)
 				if err != nil {
 					return 0, err
 				}
-				c, err := compressZstd(b)
+				c, err := compressZstdHTTP(b)
 				if err != nil {
 					return 0, err
 				}
 				total += int64(len(c))
+			}
+			return total, nil
+		}},
+		{"OTLP/gRPC + zstd", func(ps []payload) (int64, error) {
+			var total int64
+			for _, p := range ps {
+				b, err := marshalProto(p.req)
+				if err != nil {
+					return 0, err
+				}
+				c, err := compressZstdGRPC(b)
+				if err != nil {
+					return 0, err
+				}
+				// gRPC adds a 5-byte frame header per message
+				total += int64(len(c)) + 5
 			}
 			return total, nil
 		}},

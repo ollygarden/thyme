@@ -87,7 +87,7 @@ func BenchmarkMarshalSTEF(b *testing.B) {
 	}
 }
 
-func BenchmarkMarshalJSON_Zstd(b *testing.B) {
+func BenchmarkHTTP_JSON_Zstd(b *testing.B) {
 	if len(testPayloads) == 0 {
 		b.Skip("no test payloads")
 	}
@@ -99,14 +99,14 @@ func BenchmarkMarshalJSON_Zstd(b *testing.B) {
 			if err != nil {
 				b.Fatal(err)
 			}
-			if _, err := compressZstd(data); err != nil {
+			if _, err := compressZstdHTTP(data); err != nil {
 				b.Fatal(err)
 			}
 		}
 	}
 }
 
-func BenchmarkMarshalProto_Zstd(b *testing.B) {
+func BenchmarkHTTP_Proto_Zstd(b *testing.B) {
 	if len(testPayloads) == 0 {
 		b.Skip("no test payloads")
 	}
@@ -118,7 +118,26 @@ func BenchmarkMarshalProto_Zstd(b *testing.B) {
 			if err != nil {
 				b.Fatal(err)
 			}
-			if _, err := compressZstd(data); err != nil {
+			if _, err := compressZstdHTTP(data); err != nil {
+				b.Fatal(err)
+			}
+		}
+	}
+}
+
+func BenchmarkGRPC_Proto_Zstd(b *testing.B) {
+	if len(testPayloads) == 0 {
+		b.Skip("no test payloads")
+	}
+	b.SetBytes(testTotalRawBytes)
+	b.ReportAllocs()
+	for b.Loop() {
+		for _, p := range testPayloads {
+			data, err := marshalProto(p.req)
+			if err != nil {
+				b.Fatal(err)
+			}
+			if _, err := compressZstdGRPC(data); err != nil {
 				b.Fatal(err)
 			}
 		}

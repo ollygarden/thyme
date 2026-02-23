@@ -27,9 +27,15 @@ type formatResult struct {
 }
 
 func main() {
-	inputDir := flag.String("input-dir", "../../raincatcher/local/raw/", "directory containing .pb files")
+	inputDir := flag.String("input-dir", "", "directory containing .pb files (required)")
 	iterations := flag.Int("iterations", 10, "number of iterations for timing")
 	flag.Parse()
+
+	if *inputDir == "" {
+		fmt.Fprintf(os.Stderr, "error: --input-dir is required\n")
+		flag.Usage()
+		os.Exit(1)
+	}
 
 	payloads, totalRawBytes, err := loadPayloads(*inputDir)
 	if err != nil {

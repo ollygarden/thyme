@@ -53,7 +53,7 @@ go test -bench=. -benchmem -count=3
 go test -bench='BenchmarkMarshalSTEF' -benchmem -count=3
 ```
 
-If `EXPORTBENCH_INPUT_DIR` is not set, defaults to `../../raincatcher/local/raw/`. Benchmarks are skipped if no `.pb` files are found.
+If `EXPORTBENCH_INPUT_DIR` is not set, benchmarks are skipped.
 
 ## Results
 

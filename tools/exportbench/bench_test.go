@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -12,14 +13,15 @@ var testTotalRawBytes int64
 func TestMain(m *testing.M) {
 	dir := os.Getenv("EXPORTBENCH_INPUT_DIR")
 	if dir == "" {
-		dir = "../../raincatcher/local/raw/"
+		fmt.Fprintln(os.Stderr, "EXPORTBENCH_INPUT_DIR not set, skipping benchmarks")
+		os.Exit(0)
 	}
 
 	var err error
 	testPayloads, testTotalRawBytes, err = loadPayloads(dir)
 	if err != nil {
-		// Skip benchmarks if no test data available
-		os.Exit(0)
+		fmt.Fprintf(os.Stderr, "failed to load payloads: %v\n", err)
+		os.Exit(1)
 	}
 
 	os.Exit(m.Run())

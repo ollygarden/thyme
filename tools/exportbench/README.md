@@ -57,4 +57,4 @@ If `EXPORTBENCH_INPUT_DIR` is not set, benchmarks are skipped.
 
 ## Results
 
-See `local/tasks/E-1531/results.md` for full benchmark results and analysis.
+Run the tool to generate a markdown results table on stdout. For Go benchmark data, use `go test -bench=. -benchmem`.

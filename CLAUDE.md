@@ -403,6 +403,7 @@ See detailed AWS documentation:
 - **Binary Output**: `distributions/thyme/build/thyme`
 - **Generated Source**: `distributions/thyme/build/*.go` (gitignored)
 - **Benchmark Reports**: `local/reports/YYYY-MM-DD-NN-aws/` - Generated after AWS runs
+- **Export Format Benchmark**: `tools/exportbench/` - Compares OTLP/STEF serialization formats
 
 ## Design Principles
 

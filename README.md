@@ -50,18 +50,23 @@ Thyme includes components optimized for log collection:
 | Deployment mode | DaemonSet |
 | Node type | m6i.2xlarge (8 vCPU, 32GB RAM) |
 
-### Benchmark Results
+### Benchmark Results (AWS EKS, 2026-02-24)
 
-The following dashboard shows collector metrics during a 100k logs/sec benchmark run:
+All tests run on 3x m6i.2xlarge nodes with 100 log-generator pods (100k logs/sec input), k8sattributes processor enabled, batch size 10k, and file-backed sending queue.
 
-![Grafana Benchmark Metrics](docs/images/grafana-benchmark-metrics.png)
+| Exporter | Compression | Throughput | CPU | Memory |
+|----------|-------------|------------|-----|--------|
+| **OTLP/HTTP** | **zstd** | **100k logs/sec** | **1.70 cores** | **~100 MB** |
+| OTLP/gRPC | zstd | 100k logs/sec | 2.12 cores | ~160 MB |
+| OTLP/HTTP | none | 100k logs/sec | 3.71 cores | ~270 MB |
+| OTLP/gRPC | none | 100k logs/sec | 3.79 cores | ~300 MB |
 
-Key metrics shown:
-- **otelcol_exporter_sent_log_records_total** - Logs successfully exported
-- **otelcol_receiver_accepted_log_records_total** - Logs received by collectors
-- **otelcol_exporter_queue_batch_send_size** - Batch sizes being sent
-- **otelcol_process_runtime_heap_alloc_bytes** - Memory usage
-- **otelcol_process_cpu_seconds_total** - CPU consumption
+Key findings:
+- **OTLP/HTTP + zstd is the most efficient** configuration for log forwarding
+- **zstd compression halves resource usage** (~55% CPU, ~65% memory savings) for both protocols
+- **gRPC adds ~25% CPU overhead** vs HTTP when both use zstd
+- **Without compression, both protocols perform similarly** (~3.8 cores, ~300 MB)
+- **k8sattributes processor adds negligible overhead** (+1% CPU, +10 MB memory)
 
 ## Getting Started
 

@@ -19,7 +19,7 @@ data:
         fingerprint_size: 256
         max_concurrent_files: 1024
         max_batches: 0
-        poll_interval: 500ms
+        poll_interval: 100ms
 
     processors:
       transform:
@@ -39,8 +39,8 @@ data:
               - set(resource.attributes["k8s.pod.uid"], cache["k8s"]["uid"]) where cache["k8s"]["uid"] != nil
               - set(resource.attributes["k8s.container.name"], cache["k8s"]["container"]) where cache["k8s"]["container"] != nil
       batch:
-        send_batch_size: 2500
-        send_batch_max_size: 3000
+        send_batch_size: 10000
+        send_batch_max_size: 11000
         timeout: 200ms
       memory_limiter:
         check_interval: 1s

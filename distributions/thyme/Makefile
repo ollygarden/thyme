@@ -1,6 +1,6 @@
 .PHONY: build generate install-ocb run clean validate
 
-OCB_VERSION ?= 0.144.0
+OCB_VERSION ?= 0.151.0
 BINARY_NAME = thyme
 LOCAL_BIN = $(shell pwd)/bin
 BUILDER = $(LOCAL_BIN)/builder

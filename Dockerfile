@@ -3,7 +3,7 @@ WORKDIR /app
 COPY . .
 
 # Download OCB
-ARG OCB_VERSION=0.144.0
+ARG OCB_VERSION=0.151.0
 RUN wget -qO /usr/bin/builder "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/cmd%2Fbuilder%2Fv${OCB_VERSION}/ocb_${OCB_VERSION}_linux_amd64" && \
     chmod +x /usr/bin/builder
 

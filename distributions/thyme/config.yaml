@@ -47,10 +47,6 @@ receivers:
         on_error: drop
 
 processors:
-  batch:
-    send_batch_size: 10000
-    send_batch_max_size: 11000
-    timeout: 200ms
   memory_limiter:
     check_interval: 1s
     limit_percentage: 90
@@ -104,6 +100,12 @@ exporters:
     endpoint: "nop-collector:4317"
     tls:
       insecure: true
+    sending_queue:
+      enabled: true
+      batch:
+        flush_timeout: 200ms
+        min_size: 10000
+        max_size: 11000
 
 extensions:
   health_check:
@@ -118,7 +120,7 @@ service:
   pipelines:
     logs:
       receivers: [filelog]
-      processors: [memory_limiter, k8sattributes, resource, batch]
+      processors: [memory_limiter, k8sattributes, resource]
       exporters: [otlp]
   telemetry:
     resource:

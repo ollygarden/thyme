@@ -7,10 +7,6 @@ receivers:
         endpoint: 0.0.0.0:4318
 
 processors:
-  batch:
-    send_batch_size: 10000
-    send_batch_max_size: 11000
-    timeout: 10s
   memory_limiter:
     check_interval: 1s
     limit_percentage: 75
@@ -24,6 +20,12 @@ processors:
 exporters:
   debug:
     verbosity: detailed
+    sending_queue:
+      enabled: true
+      batch:
+        flush_timeout: 10s
+        min_size: 10000
+        max_size: 11000
 
 extensions:
   health_check:
@@ -35,7 +37,7 @@ service:
   pipelines:
     logs:
       receivers: [otlp]
-      processors: [memory_limiter, resource, batch]
+      processors: [memory_limiter, resource]
       exporters: [debug]
   telemetry:
     resource:

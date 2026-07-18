@@ -17,18 +17,18 @@ Use this skill when the user asks to:
 ## Environment Options
 
 ### Local (k3d) - Default
-- **Cost**: Free
+- **Cost**: No cloud infrastructure charge
 - **Setup time**: ~5 minutes
 - **Use case**: Development, quick validation
 - **Infrastructure**: Local Docker with k3d cluster
-- **Throughput**: 50k logs/sec (20 pods × 2,500 lines/sec)
+- **Throughput**: 100k logs/sec (100 pods × 1,000 lines/sec)
 
 ### AWS (EKS)
-- **Cost**: ~$2.50/hour (~$3 for full 75-min run)
+- **Historical cost estimate**: ~$2.50/hour (~$3 for full 75-min run); verify current prices
 - **Setup time**: ~20 minutes (infrastructure provisioning)
 - **Use case**: Production-scale validation
 - **Infrastructure**: 3× m6i.2xlarge nodes (8 vCPU, 32GB each)
-- **Throughput**: 100k logs/sec (40 pods × 2,500 lines/sec on single "hot" node)
+- **Throughput**: 100k logs/sec (100 pods × 1,000 lines/sec on a single "hot" node)
 
 ## Implementation
 
@@ -58,7 +58,30 @@ Note: Total time includes ramp-up (5 min) + active + cool-down (10 min)
 So 30 min active = 45 min benchmark + ~20 min setup + ~10 min cleanup = ~75 min total
 ```
 
-### Step 3: Execute
+### Step 3: Confirm Authorization and Target
+
+Do not run either script until the user explicitly approves the exact target
+and expected side effects.
+
+**For Local (k3d)**:
+- State that the target cluster is `thyme-benchmark`.
+- Warn that an existing cluster with that name will be deleted and replaced.
+- Ask the user to approve that replacement before continuing.
+
+**For AWS (EKS)**:
+- Run `aws sts get-caller-identity` and report the exact AWS account and caller.
+- Confirm the intended cluster name and region.
+- Check the current infrastructure resources and current AWS prices; treat the
+  estimates below as historical guidance, not a quote.
+- State the expected benchmark duration and estimated cost for the approved
+  resources.
+- Confirm whether automatic cleanup will remain enabled.
+- Ask the user to explicitly approve the account, cluster, cost, and cleanup
+  plan before continuing.
+
+If approval is absent or ambiguous, stop before executing the benchmark.
+
+### Step 4: Execute
 
 **For Local (k3d)**:
 ```bash
@@ -74,7 +97,7 @@ So 30 min active = 45 min benchmark + ~20 min setup + ~10 min cleanup = ~75 min 
 AUTO_CLEANUP=false ./scripts/run-benchmark-aws.sh [active_duration_minutes]
 ```
 
-### Step 4: Monitor and Report
+### Step 5: Monitor and Report
 
 Both scripts output progress. When done, inform the user:
 
@@ -104,6 +127,10 @@ Infrastructure is still running!
 - Access Grafana: http://<LoadBalancer-URL>:3000
 - Cleanup: cd infrastructure/aws && tofu destroy
 ```
+
+After either benchmark, report the actual target and cleanup outcome. If
+cleanup fails or AWS resources remain, say so prominently and provide the exact
+remaining resources and cleanup command.
 
 ## AWS-Specific Details
 
@@ -144,28 +171,38 @@ Both environments generate similar reports in `./local/reports/`:
 **Example 1: Quick local test**
 ```
 User: "Run a quick benchmark"
-Assistant: "I'll run a 10-minute local benchmark on k3d..."
+Assistant: "This will delete and replace the local k3d cluster thyme-benchmark.
+May I run a 10-minute benchmark against that target?"
+User: "Yes."
 [Executes ./scripts/run-benchmark.sh 10]
 ```
 
 **Example 2: Production-scale AWS test**
 ```
 User: "Run a benchmark on AWS"
-Assistant: "I'll run an AWS EKS benchmark with 30-minute active phase (~75 min total, ~$3 cost)..."
+Assistant: [Checks the AWS caller identity and current prices, then reports the
+account, cluster, region, ~75-minute duration, estimated cost, and automatic
+cleanup plan and asks for approval]
+User: "I approve that target, cost, and cleanup plan."
 [Executes ./scripts/run-benchmark-aws.sh 30]
 ```
 
 **Example 3: AWS with custom duration, keep infrastructure**
 ```
 User: "Run an hour-long AWS benchmark and keep the cluster running"
-Assistant: "I'll run an AWS benchmark with 60-minute active phase and preserve infrastructure..."
+Assistant: [Checks the AWS caller identity and current prices, then reports the
+account, cluster, region, duration, estimated cost, and that resources will
+remain running and asks for approval]
+User: "I approve that target, cost, and no-cleanup plan."
 [Executes AUTO_CLEANUP=false ./scripts/run-benchmark-aws.sh 60]
 ```
 
 **Example 4: User specifies local explicitly**
 ```
 User: "Run a local benchmark for 30 minutes"
-Assistant: "Running 30-minute local k3d benchmark..."
+Assistant: "This will delete and replace the local k3d cluster thyme-benchmark.
+May I proceed with that target?"
+User: "Yes."
 [Executes ./scripts/run-benchmark.sh 30]
 ```
 
@@ -175,3 +212,8 @@ Assistant: "Running 30-minute local k3d benchmark..."
 - AWS infrastructure IS automatically deleted by default (AUTO_CLEANUP=true)
 - Report directories use `-aws` suffix for AWS runs
 - Sequential numbering (01, 02, 03...) prevents overwriting same-day runs
+- The deployment manifests are the source of truth for generator topology:
+  both current Kustomize overlays render 100 replicas at 1,000 lines/sec. The
+  benchmark scripts' generated report templates still contain older 20/40 ×
+  2,500 topology text; do not present that pre-existing report text as the
+  executed topology.

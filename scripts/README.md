@@ -92,9 +92,13 @@ curl http://localhost:9090/api/v1/query?query=up
 Repository agents can use the benchmark skill to run this script after the
 required authorization:
 
-```
+```text
 User: "Run a benchmark"
-Agent: [Confirms the target and executes ./scripts/run-benchmark.sh 60]
+Agent: "The target is the `thyme-benchmark` k3d cluster. An existing cluster
+with that name will be deleted and replaced, and the new cluster will remain
+after the run. May I proceed?"
+User: "Yes, I approve that target and replacement."
+Agent: [Executes ./scripts/run-benchmark.sh 60]
 ```
 
 See [`.agents/skills/benchmark.md`](../.agents/skills/benchmark.md) for skill documentation.

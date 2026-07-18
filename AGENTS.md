@@ -98,7 +98,8 @@ The Kustomize commands above only render manifests. Never substitute a live
 Check local Markdown links with:
 
 ```bash
-perl -MFile::Basename=dirname -ne 'while (/\[[^]]+\]\(([^)#]+)(?:#[^)]+)?\)/g) { my $target = $1; next if $target =~ m{^(?:https?://|mailto:)}; my $path = $target =~ m{^/} ? $target : dirname($ARGV) . "/" . $target; die "$ARGV: missing $target\n" unless -e $path }' AGENTS.md README.md CONTRIBUTING.md
+git ls-files -z -- '*.md' '*.markdown' |
+  xargs -0 perl -MFile::Basename=dirname -ne 'while (/\[[^]]+\]\(([^)#]+)(?:#[^)]+)?\)/g) { my $target = $1; next if $target =~ m{^(?:https?://|mailto:)}; my $path = $target =~ m{^/} ? $target : dirname($ARGV) . "/" . $target; die "$ARGV: missing $target\n" unless -e $path }'
 ```
 
 Before committing, also verify that `AGENTS.md` is a real file,

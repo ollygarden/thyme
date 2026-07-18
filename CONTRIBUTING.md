@@ -54,10 +54,15 @@ submitting it.
 ## Validation
 
 Read [AGENTS.md](AGENTS.md) for the repository architecture, safety rules, and
-full path-based validation matrix. At minimum, run:
+full path-based validation matrix. For every change, run:
 
 ```bash
 git diff --check
+```
+
+For Collector manifest, configuration, or build changes, also run:
+
+```bash
 make build
 KUBE_NODE_NAME=validation-node make validate
 ```

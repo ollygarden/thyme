@@ -169,7 +169,7 @@ Both environments generate similar reports in `./local/reports/`:
 ## Examples
 
 **Example 1: Quick local test**
-```
+```text
 User: "Run a quick benchmark"
 Assistant: "This will delete and replace the local k3d cluster thyme-benchmark.
 May I run a 10-minute benchmark against that target?"
@@ -178,7 +178,7 @@ User: "Yes."
 ```
 
 **Example 2: Production-scale AWS test**
-```
+```text
 User: "Run a benchmark on AWS"
 Assistant: [Checks the AWS caller identity and current prices, then reports the
 account, cluster, region, ~75-minute duration, estimated cost, and automatic
@@ -188,7 +188,7 @@ User: "I approve that target, cost, and cleanup plan."
 ```
 
 **Example 3: AWS with custom duration, keep infrastructure**
-```
+```text
 User: "Run an hour-long AWS benchmark and keep the cluster running"
 Assistant: [Checks the AWS caller identity and current prices, then reports the
 account, cluster, region, duration, estimated cost, and that resources will
@@ -198,7 +198,7 @@ User: "I approve that target, cost, and no-cleanup plan."
 ```
 
 **Example 4: User specifies local explicitly**
-```
+```text
 User: "Run a local benchmark for 30 minutes"
 Assistant: "This will delete and replace the local k3d cluster thyme-benchmark.
 May I proceed with that target?"

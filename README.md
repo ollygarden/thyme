@@ -1,6 +1,9 @@
 # ⏱️ Thyme
 
-Thyme is a Tulip-based OpenTelemetry Collector distribution optimized for high-throughput log processing. Built for performance benchmarking and validation of log collection at scale.
+Thyme is a Tulip-based OpenTelemetry Collector distribution optimized for high-throughput log processing and repeatable log-collection benchmarks.
+
+> [!IMPORTANT]
+> Thyme is benchmark tooling, not a supported production collector. For production deployments, use [Tulip](https://github.com/ollygarden/tulip).
 
 ## Overview
 
@@ -72,7 +75,7 @@ Key findings:
 
 ### Prerequisites
 
-- Go 1.22 or later
+- Go 1.24 or later
 - OpenTelemetry Collector Builder (ocb) - automatically downloaded by the Makefile
 - (Optional) Docker & Docker Compose for containerized testing
 
@@ -125,7 +128,7 @@ K3D_CLUSTER=my-cluster make k3d-load
 
 Thyme includes two configuration files:
 
-- **`config.yaml`**: Production configuration with filelog receiver and k8sattributes processor for Kubernetes DaemonSet deployments
+- **`config.yaml`**: Kubernetes benchmark configuration with filelog receiver and k8sattributes processor for DaemonSet deployments
 - **`config-local.yaml`**: Local testing configuration with OTLP receiver only
 
 ## Deployment
@@ -149,7 +152,7 @@ See [deployment/kubernetes/](deployment/kubernetes/) for Kubernetes manifests.
 kubectl apply -k deployment/kubernetes/
 ```
 
-### AWS EKS (Production Benchmarking)
+### AWS EKS (Cloud Benchmarking)
 
 See [infrastructure/aws/](infrastructure/aws/) for OpenTofu/Terraform infrastructure-as-code and [deployment/aws/](deployment/aws/) for AWS-specific Kubernetes overlays.
 
@@ -203,6 +206,9 @@ Access Grafana via port-forward (`kubectl port-forward -n lgtm service/grafana 3
 
 ## Performance Testing
 
+> [!WARNING]
+> Benchmark workflows modify infrastructure. The local script creates and can replace or delete a k3d cluster. The AWS script creates billable resources, changes kubeconfig, pushes an image, and may destroy the infrastructure. Review the scripts, confirm the target environment and current costs, and obtain explicit authorization before running them.
+
 ### Automated Benchmarking
 
 #### Local (k3d)
@@ -216,8 +222,7 @@ Run a complete automated benchmark with report generation:
 # Run custom duration (in minutes)
 ./scripts/run-benchmark.sh 10
 
-# Or use Claude Code skill
-# In Claude Code: "Run a benchmark"
+# Repository agents can follow .agents/skills/benchmark.md
 ```
 
 This will:
@@ -311,7 +316,7 @@ thyme/
 ├── distributions/
 │   └── thyme/
 │       ├── manifest.yaml        # Component manifest
-│       ├── config.yaml          # Production configuration
+│       ├── config.yaml          # Kubernetes benchmark configuration
 │       ├── config-local.yaml    # Local testing configuration
 │       ├── Makefile             # Distribution build automation
 │       ├── bin/                 # Downloaded ocb binary
@@ -339,6 +344,12 @@ thyme/
 
 - [Tulip](https://github.com/ollygarden/tulip) - Parent distribution
 - [OpenTelemetry Collector Documentation](https://opentelemetry.io/docs/collector/)
+
+## Contributing
+
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the
+workflow and [AGENTS.md](AGENTS.md) for repository-specific development and
+validation guidance.
 
 ## Questions and Answers
 

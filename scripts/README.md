@@ -87,13 +87,14 @@ kubectl port-forward -n lgtm service/lgtm 9090:9090
 curl http://localhost:9090/api/v1/query?query=up
 ```
 
-### Integration with Claude
+### Agent integration
 
-This script is designed to be called by the `/benchmark` Claude skill:
+Repository agents can use the benchmark skill to run this script after the
+required authorization:
 
 ```
 User: "Run a benchmark"
-Claude: [Executes ./scripts/run-benchmark.sh 60]
+Agent: [Confirms the target and executes ./scripts/run-benchmark.sh 60]
 ```
 
-See `.claude/skills/benchmark.md` for skill documentation.
+See [`.agents/skills/benchmark.md`](../.agents/skills/benchmark.md) for skill documentation.

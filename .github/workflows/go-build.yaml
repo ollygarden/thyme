@@ -38,7 +38,19 @@ jobs:
         run: go build ./...
 
       - name: Vet
-        run: go vet ./...
+        run: |
+          packages="$(go list ./...)"
+          if [[ -n "$packages" ]]; then
+            go vet $packages
+          else
+            echo "No packages to vet."
+          fi
 
       - name: Test
-        run: go test -race -shuffle=on -count=1 ./...
+        run: |
+          packages="$(go list ./...)"
+          if [[ -n "$packages" ]]; then
+            go test -race -shuffle=on -count=1 $packages
+          else
+            echo "No packages to test."
+          fi

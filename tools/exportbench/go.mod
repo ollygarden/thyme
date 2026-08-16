@@ -1,6 +1,6 @@
 module go.olly.garden/thyme/tools/exportbench
 
-go 1.25.0
+go 1.26.6
 
 require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/stefexporter v0.146.0

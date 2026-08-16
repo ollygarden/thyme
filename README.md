@@ -75,8 +75,8 @@ Key findings:
 
 ### Prerequisites
 
-- Go 1.24 or later for the root Collector distribution module
-- Go 1.25 or later when working in the separate `tools/exportbench` module
+- Go 1.26.6 or later for the root Collector distribution module
+- Go 1.26.6 or later when working in the separate `tools/exportbench` module
 - OpenTelemetry Collector Builder (ocb) - automatically downloaded by the Makefile
 - (Optional) Docker & Docker Compose for containerized testing
 
